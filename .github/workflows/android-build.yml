@@ -10,18 +10,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # The Android Gradle Plugin used by OpenBoard (7.0) needs JDK 11.
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '11'
           distribution: 'temurin'
           cache: gradle
 
+      # sdkmanager itself needs Java 17, which the runner image provides.
       - name: Install the NDK version used by the native code
-        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;21.3.6528147" > /dev/null
+        run: |
+          JAVA_HOME="$JAVA_HOME_17_X64" "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            --install "ndk;21.3.6528147" | grep -v "^\[" || true
+          test -d "$ANDROID_HOME/ndk/21.3.6528147"
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
