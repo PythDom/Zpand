@@ -4,8 +4,8 @@
     <string name="settings_screen_shortcuts">Text shortcuts</string>
     <string name="settings_screen_shortcuts_summary">Expand abbreviations as you type, on screen or on a physical keyboard</string>
     <string name="shortcuts_enabled">Expand shortcuts</string>
-    <string name="shortcuts_help">One shortcut per line: the abbreviation, a space, then the text. Use \\n for a line break. Lines starting with # are ignored.\n\nType the abbreviation followed by a space, Enter or punctuation to expand it. Press Backspace right after to undo. \"Dmq\" and \"DMQ\" give capitalized and upper-case versions.</string>
-    <string name="shortcuts_hint">dmq Dominique</string>
+    <string name="shortcuts_help">One shortcut per line, TyperTask style: Trigger=Text. Use {enter} for a line break. Lines starting with ; are ignored.\n\nType the trigger followed by a space, Enter or punctuation to expand it. Press Backspace right after to undo. Triggers are case-sensitive; a lower-case trigger typed with a capital first letter (\"Dmq\") gives a capitalized text.</string>
+    <string name="shortcuts_hint">dmq=Dominique</string>
     <plurals name="shortcuts_count">
         <item quantity="one">%d shortcut</item>
         <item quantity="other">%d shortcuts</item>

@@ -11,12 +11,16 @@ krgds  → Kind regards,
          Dominique
 ```
 
+It also adds a **French (Belgium)** AZERTY keyboard.
+
 ## How it works
 
 - Type an abbreviation, then a **space, Enter or punctuation**: the abbreviation is replaced by its
   expansion and your delimiter is kept.
 - It only matches whole words: `dmq` expands, `admq` does not.
-- Case: `Dmq` → `Dominique`, `DMQ` → `DOMINIQUE`. An entry defined with exact case wins.
+- Triggers are case-sensitive, so `tjs` and `Tjs` can have different texts. If only the
+  lower-case trigger exists, `Dmq` gives `Dominique` with a capital (handy at the start of a
+  sentence). There is no ALL-CAPS variant, so acronyms like `SVP` never expand by accident.
 - **Backspace right after an expansion** puts the abbreviation back.
 - Never expands in password fields.
 
@@ -31,20 +35,37 @@ The keyboard must be the selected input method, even if the on-screen keyboard i
 
 ## Managing shortcuts
 
-*Zpand Settings → Text shortcuts* opens a plain-text editor, one shortcut per line:
+*Zpand Settings → Text shortcuts* opens a plain-text editor. The format is the one used by
+**TyperTask**, so an existing TyperTask file can be imported as is:
 
 ```
-# comment
-dmq Dominique
-krgds Kind regards,\nDominique
+; comment
+dmq=Dominique
+cdlt=Cordialement,{enter}Dominique
 ```
 
-The abbreviation is the first word; everything after the first space is the expansion. Use `\n`
-for a line break, `\t` for a tab and `\\` for a backslash. Changes apply as soon as you leave the
-screen or press *Save*.
+- The trigger is everything before the first `=` (no spaces); the text is everything after it,
+  so the text may itself contain `=`.
+- `{enter}` is a line break and `{tab}` a tab. Lines starting with `;` (or `#`) are comments.
+- TyperTask hotkeys (`{Control}{Shift}{Alt}G=...`) and commands (`x=RUN: ...`) are skipped, as are
+  lines without `=`.
+- If a trigger appears twice, the last one wins.
 
-**Import / Export** read and write the same format as a `.txt` file, so you can keep your list in a
-file and edit it on a computer. Importing lets you add to or replace the current list.
+Changes apply as soon as you leave the screen or press *Save*.
+
+**Import / Export** read and write the same format as a `.txt` file. Import accepts UTF-8,
+UTF-16 and Windows "ANSI" (Windows-1252) files, which is what TyperTask usually saves, so accents
+come through correctly. Importing lets you add to or replace the current list.
+
+## French (Belgium) keyboard
+
+*Zpand Settings → Languages* (or the language list in Android's keyboard settings) now offers
+**Français (Belgique)** with the AZERTY layout. Accents are on long-press (`e` → `é è ê ë`,
+`a` → `à â`, `c` → `ç`…), and it uses the French dictionary.
+
+For a **physical** keyboard, the key layout is chosen by Android, not by the on-screen keyboard:
+*Settings → System → Keyboard → Physical keyboard → (your keyboard) → French (Belgium)* (or
+"Belgian"; wording varies by device). Dead keys such as `^` + `e` = `ê` then work as on a PC.
 
 ## Installing
 

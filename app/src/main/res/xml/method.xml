@@ -55,6 +55,7 @@
     fr: French/azerty
     fr_CA: French (Canada)/qwerty
     fr_CH: French (Switzerland)/swiss
+    fr_BE: French (Belgium)/azerty  (Zpand)
     gl_ES: Galician (Spain)/spanish
     hi: Hindi/hindi
     hi: Hindi/hindi_compact
@@ -389,6 +390,16 @@
             android:languageTag="fr-CH"
             android:imeSubtypeMode="keyboard"
             android:imeSubtypeExtraValue="KeyboardLayoutSet=swiss,AsciiCapable,SupportTouchPositionCorrection,EmojiCapable"
+            android:isAsciiCapable="true"
+    />
+    <!-- Zpand: French (Belgium), AZERTY. Accents, dictionary and long-press keys come from "fr". -->
+    <subtype android:icon="@drawable/ic_ime_switcher_dark"
+            android:label="@string/subtype_generic"
+            android:subtypeId="0x5a0c1b3e"
+            android:imeSubtypeLocale="fr_BE"
+            android:languageTag="fr-BE"
+            android:imeSubtypeMode="keyboard"
+            android:imeSubtypeExtraValue="KeyboardLayoutSet=azerty,AsciiCapable,SupportTouchPositionCorrection,EmojiCapable"
             android:isAsciiCapable="true"
     />
     <subtype android:icon="@drawable/ic_ime_switcher_dark"

@@ -13,12 +13,17 @@ import org.junit.Test;
 public class TextExpanderTest {
 
     private static final TextExpander EXPANDER = TextExpander.fromText(
-            "dmq Dominique\n"
-            + "krgds Kind regards,\\nDominique\n"
-            + "km kilometre\n"
-            + "kmh km/h\n"
-            + ";addr 1 rue de la Paix\n"
-            + "Ok Okay exactly\n");
+            "dmq=Dominique\n"
+            + "krgds=Kind regards,{enter}Dominique\n"
+            + "km=kilometre\n"
+            + "kmh=km/h\n"
+            + "!addr=1 rue de la Paix\n"
+            + "Ok=Okay exactly\n"
+            + "tjs=toujours\n"
+            + "Tjs=Toujours !\n"
+            + "CSS=CSERIES\n"
+            + "a-m=après-midi\n"
+            + "màj=mise à jour\n");
 
     private static String expand(final String textBeforeCursor) {
         final TextExpander.Match match = EXPANDER.findMatch(textBeforeCursor);
@@ -56,8 +61,8 @@ public class TextExpanderTest {
 
     @Test
     public void prefixCharacterAbbreviation() {
-        assertEquals("1 rue de la Paix", expand("at ;addr"));
-        assertEquals("1 rue de la Paix", expand(";addr"));
+        assertEquals("1 rue de la Paix", expand("at !addr"));
+        assertEquals("1 rue de la Paix", expand("!addr"));
         // "addr" alone is not defined.
         assertNull(expand("addr"));
     }
@@ -65,11 +70,28 @@ public class TextExpanderTest {
     @Test
     public void caseVariants() {
         assertEquals("Dominique", expand("Dmq"));
-        assertEquals("DOMINIQUE", expand("DMQ"));
         assertEquals("Kind regards,\nDominique", expand("Krgds"));
-        assertEquals("KIND REGARDS,\nDOMINIQUE", expand("KRGDS"));
+        // No ALL-CAPS variant: acronyms must not expand by accident.
+        assertNull(expand("DMQ"));
         // Mixed case is not a recognized variant.
         assertNull(expand("dMq"));
+    }
+
+    @Test
+    public void explicitCasePairsAndUpperCaseTriggers() {
+        assertEquals("toujours", expand("tjs"));
+        assertEquals("Toujours !", expand("Tjs"));
+        assertEquals("CSERIES", expand("CSS"));
+        assertNull(expand("css"));
+        assertNull(expand("Css"));
+    }
+
+    @Test
+    public void triggersWithHyphenAndAccents() {
+        assertEquals("après-midi", expand("cet a-m"));
+        assertEquals("mise à jour", expand("la màj"));
+        assertEquals("Mise à jour", expand("Màj"));
+        assertNull(expand("xa-m"));
     }
 
     @Test
@@ -114,9 +136,6 @@ public class TextExpanderTest {
 
     @Test
     public void caseHelpers() {
-        assertTrue(TextExpander.isAllUpperCase("DMQ"));
-        assertFalse(TextExpander.isAllUpperCase("D"));
-        assertFalse(TextExpander.isAllUpperCase("Dmq"));
         assertTrue(TextExpander.isCapitalized("Dmq"));
         assertTrue(TextExpander.isCapitalized("É"));
         assertFalse(TextExpander.isCapitalized("dmq"));

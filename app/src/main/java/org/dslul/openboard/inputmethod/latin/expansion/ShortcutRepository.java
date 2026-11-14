@@ -33,6 +33,16 @@ public final class ShortcutRepository {
     public static final String PREF_TEXT_EXPANSION_ENABLED = "pref_text_expansion_enabled";
 
     static final String DEFAULT_CONTENT =
+            "; Zpand text shortcuts (same format as TyperTask)\n"
+            + ";    Trigger=Type This Text   (one per line)\n"
+            + "; Use {enter} for a line break. Lines starting with ; are ignored.\n"
+            + "; Type the trigger then a space, Enter or punctuation to expand it.\n"
+            + "; Press Backspace right after an expansion to undo it.\n"
+            + "dmq=Dominique\n"
+            + "krgds=Kind regards,{enter}Dominique\n";
+
+    /** The default list of version 0.1, in the old "abbreviation expansion" format. */
+    private static final String OLD_DEFAULT_CONTENT =
             "# Zpand text shortcuts\n"
             + "# One per line: abbreviation, a space, then the expansion.\n"
             + "# Use \\n for a line break. Lines starting with # are ignored.\n"
@@ -76,6 +86,15 @@ public final class ShortcutRepository {
             } catch (final IOException e) {
                 Log.e(TAG, "Could not read shortcuts", e);
                 text = "";
+            }
+            if (OLD_DEFAULT_CONTENT.equals(text)) {
+                // Untouched list from version 0.1: switch to the new format.
+                text = DEFAULT_CONTENT;
+                try {
+                    writeFile(mFile, text);
+                } catch (final IOException e) {
+                    Log.e(TAG, "Could not update default shortcuts", e);
+                }
             }
         } else {
             text = DEFAULT_CONTENT;
@@ -124,9 +143,7 @@ public final class ShortcutRepository {
         while ((n = in.read(buffer)) != -1) {
             out.write(buffer, 0, n);
         }
-        String text = new String(out.toByteArray(), UTF_8);
-        if (text.startsWith("﻿")) text = text.substring(1); // strip UTF-8 BOM
-        return text;
+        return ShortcutFormat.decode(out.toByteArray());
     }
 
     private static String readFile(final File file) throws IOException {

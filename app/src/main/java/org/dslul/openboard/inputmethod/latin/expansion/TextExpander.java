@@ -20,7 +20,8 @@ import java.util.Map;
  * So with "dmq" defined, "dmq" and "(dmq" expand, but "admq" does not.
  *
  * Case handling: an exact (case-sensitive) entry always wins. Otherwise, for an entry stored in
- * lower case, "Dmq" expands to the capitalized expansion and "DMQ" to the upper-case expansion.
+ * lower case, "Dmq" expands to the capitalized expansion (handy at the start of a sentence).
+ * There is deliberately no ALL-CAPS variant: "SVP" or "DZ" are often typed as acronyms.
  */
 public final class TextExpander {
 
@@ -107,9 +108,6 @@ public final class TextExpander {
         if (lower.equals(typed)) return null;
         final String expansion = mShortcuts.get(lower);
         if (expansion == null) return null;
-        if (isAllUpperCase(typed)) {
-            return expansion.toUpperCase(Locale.getDefault());
-        }
         if (isCapitalized(typed)) {
             return capitalizeFirst(expansion);
         }
@@ -121,20 +119,6 @@ public final class TextExpander {
             if (Character.isWhitespace(s.charAt(i))) return true;
         }
         return false;
-    }
-
-    /** True for "DMQ" (at least two letters, none lower case); false for "D" or "D1". */
-    static boolean isAllUpperCase(final String s) {
-        int letters = 0;
-        for (int i = 0; i < s.length(); ) {
-            final int cp = s.codePointAt(i);
-            if (Character.isLetter(cp)) {
-                if (!Character.isUpperCase(cp)) return false;
-                letters++;
-            }
-            i += Character.charCount(cp);
-        }
-        return letters >= 2;
     }
 
     /** True for "Dmq": the first letter is upper case and every other letter is lower case. */
