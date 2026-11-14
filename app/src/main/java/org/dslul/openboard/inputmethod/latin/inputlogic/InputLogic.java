@@ -49,6 +49,9 @@ import org.dslul.openboard.inputmethod.latin.common.Constants;
 import org.dslul.openboard.inputmethod.latin.common.InputPointers;
 import org.dslul.openboard.inputmethod.latin.common.StringUtils;
 import org.dslul.openboard.inputmethod.latin.define.DebugFlags;
+import org.dslul.openboard.inputmethod.latin.expansion.ShortcutExpansionPolicy;
+import org.dslul.openboard.inputmethod.latin.expansion.ShortcutRepository;
+import org.dslul.openboard.inputmethod.latin.expansion.TextExpander;
 import org.dslul.openboard.inputmethod.latin.settings.SettingsValues;
 import org.dslul.openboard.inputmethod.latin.settings.SettingsValuesForSuggestion;
 import org.dslul.openboard.inputmethod.latin.settings.SpacingAndPunctuations;
@@ -921,6 +924,9 @@ public final class InputLogic {
             resetEntireInputState(mConnection.getExpectedSelectionStart(),
                     mConnection.getExpectedSelectionEnd(), true /* clearSuggestionStrip */);
         }
+        // Zpand: expand a text shortcut that ends at the cursor. This runs before
+        // auto-correction so that the abbreviation is not "corrected" first.
+        tryExpandShortcut(codePoint, shouldAvoidSendingCode, settingsValues);
         // isComposingWord() may have changed since we stored wasComposing
         if (mWordComposer.isComposingWord()) {
             if (settingsValues.mAutoCorrectionEnabledPerUserSettings) {
@@ -1016,6 +1022,50 @@ public final class InputLogic {
         }
 
         inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+    }
+
+    // Zpand: the LastComposedWord created by the last shortcut expansion, if any.
+    private LastComposedWord mLastExpansion = null;
+
+    /**
+     * Zpand: if the text before the cursor ends with a shortcut abbreviation, replace it with its
+     * expansion. The separator itself is inserted afterwards by the caller, as usual.
+     *
+     * The expansion is recorded as the last composed word, so that pressing backspace right
+     * after it reverts to the abbreviation, exactly like reverting an auto-correction.
+     *
+     * @return whether an expansion was performed.
+     */
+    private boolean tryExpandShortcut(final int codePoint, final boolean shouldAvoidSendingCode,
+            final SettingsValues settingsValues) {
+        if (!ShortcutExpansionPolicy.isAllowed(settingsValues.mInputAttributes,
+                mLatinIME.getPackageName())) {
+            return false;
+        }
+        final TextExpander expander = ShortcutRepository.getInstance(mLatinIME).getActiveExpander();
+        if (expander.isEmpty() || mConnection.hasSelection()) {
+            return false;
+        }
+        final CharSequence textBeforeCursor =
+                mConnection.getTextBeforeCursor(expander.getContextLength(), 0);
+        final TextExpander.Match match = expander.findMatch(textBeforeCursor);
+        if (match == null) {
+            return false;
+        }
+        if (mWordComposer.isComposingWord()) {
+            // Commit the typed word as-is (no auto-correction), then replace it below.
+            mConnection.finishComposingText();
+            resetComposingState(false /* alsoResetLastComposedWord */);
+        }
+        mConnection.deleteTextBeforeCursor(match.typed.length());
+        mConnection.commitText(match.expansion, 1);
+        final String separator = shouldAvoidSendingCode ? LastComposedWord.NOT_A_SEPARATOR
+                : StringUtils.newSingleCodePointString(codePoint);
+        mLastComposedWord = new LastComposedWord(new ArrayList<Event>(), null /* inputPointers */,
+                match.typed, match.expansion, separator, NgramContext.EMPTY_PREV_WORDS_INFO,
+                WordComposer.CAPS_MODE_OFF);
+        mLastExpansion = mLastComposedWord;
+        return true;
     }
 
     /**
@@ -1695,7 +1745,8 @@ public final class InputLogic {
             }
         }
         mConnection.deleteTextBeforeCursor(deleteLength);
-        if (!TextUtils.isEmpty(committedWord)) {
+        // Zpand: an expansion was never learned, so there is nothing to unlearn.
+        if (!TextUtils.isEmpty(committedWord) && mLastComposedWord != mLastExpansion) {
             unlearnWord(committedWordString, inputTransaction.getMSettingsValues(),
                     Constants.EVENT_REVERT);
         }

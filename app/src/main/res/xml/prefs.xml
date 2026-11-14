@@ -21,6 +21,16 @@
         android:title="@string/settings_screen_preferences"
         android:key="screen_preferences"
         android:icon="@drawable/ic_settings_preferences"/>
+    <!-- Zpand -->
+    <PreferenceScreen
+        android:title="@string/settings_screen_shortcuts"
+        android:summary="@string/settings_screen_shortcuts_summary"
+        android:key="screen_shortcuts"
+        android:icon="@drawable/ic_settings_correction">
+        <intent
+            android:targetPackage="io.github.pythdom.zpand"
+            android:targetClass="org.dslul.openboard.inputmethod.latin.expansion.ShortcutsActivity" />
+    </PreferenceScreen>
     <PreferenceScreen
         android:fragment="org.dslul.openboard.inputmethod.latin.settings.AppearanceSettingsFragment"
         android:title="@string/settings_screen_appearance"

@@ -6,15 +6,32 @@ android {
     compileSdkVersion 31
 
     defaultConfig {
-        applicationId "org.dslul.openboard.inputmethod.latin"
+        // Zpand: own application id so it can be installed next to OpenBoard.
+        applicationId "io.github.pythdom.zpand"
         minSdkVersion 19
         targetSdkVersion 31
-        versionCode 19
-        versionName '1.4.5'
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    signingConfigs {
+        // A fixed, public signing key for personal builds, so that each new APK built by CI
+        // installs as an update over the previous one. It is NOT a secret: do not use it for
+        // a Play Store release.
+        zpand {
+            storeFile file('zpand-debug.keystore')
+            storePassword 'android'
+            keyAlias 'zpand'
+            keyPassword 'android'
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.zpand
+        }
         release {
+            signingConfig signingConfigs.zpand
             minifyEnabled false
             debuggable false
             jniDebuggable false
@@ -47,6 +64,8 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.viewpager2:viewpager2:1.0.0'
+
+    testImplementation 'junit:junit:4.13.2'
 }
 repositories {
     mavenCentral()

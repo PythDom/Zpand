@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zpand: strings for text shortcuts. Licensed under the GNU GPL v3 or later. -->
+<resources>
+    <string name="settings_screen_shortcuts">Text shortcuts</string>
+    <string name="settings_screen_shortcuts_summary">Expand abbreviations as you type, on screen or on a physical keyboard</string>
+    <string name="shortcuts_enabled">Expand shortcuts</string>
+    <string name="shortcuts_help">One shortcut per line: the abbreviation, a space, then the text. Use \\n for a line break. Lines starting with # are ignored.\n\nType the abbreviation followed by a space, Enter or punctuation to expand it. Press Backspace right after to undo. \"Dmq\" and \"DMQ\" give capitalized and upper-case versions.</string>
+    <string name="shortcuts_hint">dmq Dominique</string>
+    <plurals name="shortcuts_count">
+        <item quantity="one">%d shortcut</item>
+        <item quantity="other">%d shortcuts</item>
+    </plurals>
+    <string name="shortcuts_save">Save</string>
+    <string name="shortcuts_saved">Shortcuts saved</string>
+    <string name="shortcuts_save_failed">Could not save the shortcuts</string>
+    <string name="shortcuts_import">Import</string>
+    <string name="shortcuts_import_add">Add</string>
+    <string name="shortcuts_import_replace">Replace all</string>
+    <plurals name="shortcuts_import_found">
+        <item quantity="one">The file contains %d shortcut. Add it to your list, or replace your list?</item>
+        <item quantity="other">The file contains %d shortcuts. Add them to your list, or replace your list?</item>
+    </plurals>
+    <string name="shortcuts_import_failed">Could not read the file</string>
+    <string name="shortcuts_export">Export</string>
+    <string name="shortcuts_exported">Shortcuts exported</string>
+    <string name="shortcuts_export_failed">Could not write the file</string>
+</resources>

@@ -70,6 +70,7 @@ import org.dslul.openboard.inputmethod.latin.common.CoordinateUtils;
 import org.dslul.openboard.inputmethod.latin.common.InputPointers;
 import org.dslul.openboard.inputmethod.latin.define.DebugFlags;
 import org.dslul.openboard.inputmethod.latin.define.ProductionFlags;
+import org.dslul.openboard.inputmethod.latin.expansion.HardwareKeyExpander;
 import org.dslul.openboard.inputmethod.latin.inputlogic.InputLogic;
 import org.dslul.openboard.inputmethod.latin.permissions.PermissionsManager;
 import org.dslul.openboard.inputmethod.latin.personalization.PersonalizationHelper;
@@ -123,13 +124,13 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
      * A broadcast intent action to hide the software keyboard.
      */
     static final String ACTION_HIDE_SOFT_INPUT =
-            "org.dslul.openboard.inputmethod.latin.HIDE_SOFT_INPUT";
+            "io.github.pythdom.zpand.HIDE_SOFT_INPUT";
 
     /**
      * A custom permission for external apps to send {@link #ACTION_HIDE_SOFT_INPUT}.
      */
     static final String PERMISSION_HIDE_SOFT_INPUT =
-            "org.dslul.openboard.inputmethod.latin.HIDE_SOFT_INPUT";
+            "io.github.pythdom.zpand.HIDE_SOFT_INPUT";
 
     /**
      * The name of the scheme used by the Package Manager to warn of a new package installation,
@@ -156,6 +157,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     @UsedForTesting final KeyboardSwitcher mKeyboardSwitcher;
     private final SubtypeState mSubtypeState = new SubtypeState();
     private EmojiAltPhysicalKeyDetector mEmojiAltPhysicalKeyDetector;
+    // Zpand: text expansion for physical keyboards.
+    private final HardwareKeyExpander mHardwareKeyExpander = new HardwareKeyExpander(this);
     private StatsUtilsManager mStatsUtilsManager;
     // Working variable for {@link #startShowingInputView()} and
     // {@link #onEvaluateInputViewShown()}.
@@ -843,6 +846,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     @Override
     public void onStartInput(final EditorInfo editorInfo, final boolean restarting) {
+        mHardwareKeyExpander.reset();
         mHandler.onStartInput(editorInfo, restarting);
     }
 
@@ -1796,6 +1800,10 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                     getApplicationContext().getResources());
         }
         mEmojiAltPhysicalKeyDetector.onKeyDown(keyEvent);
+        if (mHardwareKeyExpander.onKeyDown(keyEvent, getCurrentInputConnection(),
+                getCurrentInputEditorInfo(), mSettings.getCurrent())) {
+            return true;
+        }
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED) {
             return super.onKeyDown(keyCode, keyEvent);
         }
@@ -1821,6 +1829,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                     getApplicationContext().getResources());
         }
         mEmojiAltPhysicalKeyDetector.onKeyUp(keyEvent);
+        if (mHardwareKeyExpander.onKeyUp(keyEvent)) {
+            return true;
+        }
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED) {
             return super.onKeyUp(keyCode, keyEvent);
         }
