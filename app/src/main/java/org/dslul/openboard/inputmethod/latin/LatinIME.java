@@ -39,6 +39,7 @@ import android.util.PrintWriterPrinter;
 import android.util.Printer;
 import android.util.SparseArray;
 import android.view.Gravity;
+import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
@@ -159,6 +160,11 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     private EmojiAltPhysicalKeyDetector mEmojiAltPhysicalKeyDetector;
     // Zpand: text expansion for physical keyboards.
     private final HardwareKeyExpander mHardwareKeyExpander = new HardwareKeyExpander(this);
+    // Zpand: true from the last physical key press until the next on-screen key press.
+    // Physical keys go straight to the app, so OpenBoard's cached copy of the text lags behind;
+    // while this is set, OpenBoard must not mark or rewrite words around the cursor (it would
+    // do so from stale text and could delete or replace the wrong characters).
+    boolean mPhysicalKeyboardInUse = false;
     private StatsUtilsManager mStatsUtilsManager;
     // Working variable for {@link #startShowingInputView()} and
     // {@link #onEvaluateInputViewShown()}.
@@ -287,11 +293,13 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                     }
                     break;
                 case MSG_RESUME_SUGGESTIONS:
+                    if (latinIme.mPhysicalKeyboardInUse) break; // Zpand, see onKeyDown
                     latinIme.mInputLogic.restartSuggestionsOnWordTouchedByCursor(
                             latinIme.mSettings.getCurrent(), false /* forStartInput */,
                             latinIme.mKeyboardSwitcher.getCurrentKeyboardScriptId());
                     break;
                 case MSG_RESUME_SUGGESTIONS_FOR_START_INPUT:
+                    if (latinIme.mPhysicalKeyboardInUse) break; // Zpand, see onKeyDown
                     latinIme.mInputLogic.restartSuggestionsOnWordTouchedByCursor(
                             latinIme.mSettings.getCurrent(), true /* forStartInput */,
                             latinIme.mKeyboardSwitcher.getCurrentKeyboardScriptId());
@@ -343,6 +351,12 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                     0 /* ignored */), mDelayInMillisecondsToUpdateSuggestions);
         }
 
+        // Zpand: drop any pending "resume suggestions" request.
+        public void cancelResumeSuggestions() {
+            removeMessages(MSG_RESUME_SUGGESTIONS);
+            removeMessages(MSG_RESUME_SUGGESTIONS_FOR_START_INPUT);
+        }
+
         public void postReopenDictionaries() {
             sendMessage(obtainMessage(MSG_REOPEN_DICTIONARIES));
         }
@@ -355,6 +369,9 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             }
             if (!latinIme.mSettings.getCurrent().isSuggestionsEnabledPerUserSettings()) {
                 return;
+            }
+            if (latinIme.mPhysicalKeyboardInUse) {
+                return; // Zpand, see onKeyDown
             }
             removeMessages(MSG_RESUME_SUGGESTIONS);
             removeMessages(MSG_RESUME_SUGGESTIONS_FOR_START_INPUT);
@@ -1127,6 +1144,14 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         // view is not displayed we have no means of showing suggestions anyway, and if it is then
         // we want to show suggestions anyway.
         final SettingsValues settingsValues = mSettings.getCurrent();
+        if (mPhysicalKeyboardInUse) {
+            // Zpand: see mPhysicalKeyboardInUse. Without the on-screen keyboard there is nothing
+            // to keep in sync (onPhysicalKeyboardDone() reloads everything when it comes back).
+            if (isInputViewShown()) {
+                mInputLogic.onUpdateSelectionFromPhysicalKeyboard(newSelStart, newSelEnd);
+            }
+            return;
+        }
         if (isInputViewShown()
                 && mInputLogic.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
                 settingsValues)) {
@@ -1770,6 +1795,12 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     @Override
     public void onPressKey(final int primaryCode, final int repeatCount,
                            final boolean isSinglePointer) {
+        if (mPhysicalKeyboardInUse) {
+            // Zpand: back to the on-screen keyboard. The cursor may have moved many times
+            // without OpenBoard following closely, so start from a fresh state.
+            mPhysicalKeyboardInUse = false;
+            mInputLogic.onPhysicalKeyboardDone();
+        }
         mKeyboardSwitcher.onPressKey(primaryCode, isSinglePointer, getCurrentAutoCapsState(),
                 getCurrentRecapitalizeState());
         hapticAndAudioFeedback(primaryCode, repeatCount);
@@ -1800,6 +1831,15 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                     getApplicationContext().getResources());
         }
         mEmojiAltPhysicalKeyDetector.onKeyDown(keyEvent);
+        if (keyEvent.getDeviceId() != KeyCharacterMap.VIRTUAL_KEYBOARD) {
+            if (!mPhysicalKeyboardInUse) {
+                mPhysicalKeyboardInUse = true;
+                // Remove any composing region left in the app (e.g. set by a suggestion restart).
+                mInputLogic.mConnection.finishComposingText();
+            }
+            mHandler.cancelResumeSuggestions();
+            mInputLogic.onPhysicalKeyPressed();
+        }
         if (mHardwareKeyExpander.onKeyDown(keyEvent, getCurrentInputConnection(),
                 getCurrentInputEditorInfo(), mSettings.getCurrent())) {
             return true;

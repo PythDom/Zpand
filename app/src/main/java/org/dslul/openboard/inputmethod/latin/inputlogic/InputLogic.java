@@ -1024,6 +1024,38 @@ public final class InputLogic {
         inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
     }
 
+    /**
+     * Zpand: a physical key is about to reach the app directly. If we were composing a word,
+     * commit it as it is, so that the app never receives keys inside a composing region and
+     * nothing we cached about that word can be written back later.
+     */
+    public void onPhysicalKeyPressed() {
+        if (mWordComposer.isComposingWord()) {
+            mConnection.finishComposingText();
+            resetComposingState(true /* alsoResetLastComposedWord */);
+        }
+        mWordBeingCorrectedByCursor = null;
+        mSpaceState = SpaceState.NONE;
+    }
+
+    /**
+     * Zpand: the cursor moved while typing on a physical keyboard. Only resynchronize our caches;
+     * unlike {@link #onUpdateSelection}, never start composing the word around the cursor.
+     */
+    public void onUpdateSelectionFromPhysicalKeyboard(final int newSelStart, final int newSelEnd) {
+        mSpaceState = SpaceState.NONE;
+        mWordBeingCorrectedByCursor = null;
+        resetComposingState(true /* alsoResetLastComposedWord */);
+        mConnection.resetCachesUponCursorMoveAndReturnSuccess(newSelStart, newSelEnd,
+                false /* shouldFinishComposition */);
+    }
+
+    /** Zpand: the on-screen keyboard is used again after physical typing. */
+    public void onPhysicalKeyboardDone() {
+        resetEntireInputState(mConnection.getExpectedSelectionStart(),
+                mConnection.getExpectedSelectionEnd(), true /* clearSuggestionStrip */);
+    }
+
     // Zpand: the LastComposedWord created by the last shortcut expansion, if any.
     private LastComposedWord mLastExpansion = null;
 
