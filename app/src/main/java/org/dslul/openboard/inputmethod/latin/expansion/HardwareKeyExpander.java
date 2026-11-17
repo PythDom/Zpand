@@ -12,6 +12,8 @@ import android.text.TextUtils;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.ExtractedText;
+import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 
 import org.dslul.openboard.inputmethod.latin.settings.SettingsValues;
@@ -32,11 +34,14 @@ public final class HardwareKeyExpander {
         final String typed;
         final String separator;
         final String inserted; // expansion + separator, as found before the cursor
+        final int cursorAfter; // absolute cursor position right after the expansion
 
-        Undo(final String typed, final String expansion, final String separator) {
+        Undo(final String typed, final String expansion, final String separator,
+                final int cursorAfter) {
             this.typed = typed;
             this.separator = separator;
             this.inserted = expansion + separator;
+            this.cursorAfter = cursorAfter;
         }
     }
 
@@ -121,9 +126,15 @@ public final class HardwareKeyExpander {
             sendKey(ic, event, KeyEvent.ACTION_UP);
         } else {
             ic.commitText(match.expansion + separator, 1);
-            mUndo = new Undo(match.typed, match.expansion, separator);
         }
         ic.endBatchEdit();
+        if (!isEnter) {
+            // Backspace-undo is only offered if we know exactly where the expansion ends.
+            final int cursor = getCursorPosition(ic);
+            if (cursor >= 0) {
+                mUndo = new Undo(match.typed, match.expansion, separator, cursor);
+            }
+        }
         mConsumedKeyCode = keyCode;
         return true;
     }
@@ -138,7 +149,13 @@ public final class HardwareKeyExpander {
         return false;
     }
 
+    /**
+     * Undo only if nothing happened since the expansion: Backspace is the very next key, the
+     * cursor is exactly where the expansion left it, nothing is selected, and the expansion is
+     * still right before the cursor. In every other case Backspace works normally.
+     */
     private static boolean tryUndo(final InputConnection ic, final Undo undo) {
+        if (getCursorPosition(ic) != undo.cursorAfter) return false;
         final CharSequence before = ic.getTextBeforeCursor(undo.inserted.length(), 0);
         if (before == null || !undo.inserted.contentEquals(before)) return false;
         if (!TextUtils.isEmpty(ic.getSelectedText(0))) return false;
@@ -148,6 +165,16 @@ public final class HardwareKeyExpander {
         ic.commitText(undo.typed + undo.separator, 1);
         ic.endBatchEdit();
         return true;
+    }
+
+    /** @return the absolute cursor position, or -1 if unknown or if there is a selection. */
+    private static int getCursorPosition(final InputConnection ic) {
+        final ExtractedText extracted = ic.getExtractedText(new ExtractedTextRequest(), 0);
+        if (extracted == null || extracted.selectionStart < 0
+                || extracted.selectionStart != extracted.selectionEnd) {
+            return -1;
+        }
+        return extracted.startOffset + extracted.selectionStart;
     }
 
     private static void sendKey(final InputConnection ic, final KeyEvent original, final int action) {
